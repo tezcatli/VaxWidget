@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">VaxWidget</string>
+    <string name="appwidget_text">Tap It!</string>
+    <string name="add_widget">Add widget</string>
+</resources>
