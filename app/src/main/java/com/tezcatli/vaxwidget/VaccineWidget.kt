@@ -6,6 +6,8 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.util.Log
 import android.widget.RemoteViews
 import com.github.mikephil.charting.charts.LineChart
@@ -32,7 +34,7 @@ class MyXAxisFormatter : ValueFormatter() {
 class VaccineWidget : AppWidgetProvider() {
 
     companion object {
-        public val DISPLAY_DATA: String = "com.tezcatli.vaxwidget.DISPLAY_DATA"
+        val DISPLAY_DATA: String = "com.tezcatli.vaxwidget.DISPLAY_DATA"
     }
 
     override fun onDeleted(context: Context?, appWidgetIds: IntArray?) {
@@ -72,25 +74,27 @@ class VaccineWidget : AppWidgetProvider() {
 
         // There may be multiple widgets active, so update all of them
         for (appWidgetId in appWidgetIds) {
-            updateAppWidget(context, appWidgetManager, appWidgetId)
+            updateAppWidget(context, appWidgetId)
         }
 
         super.onUpdate(context, appWidgetManager, appWidgetIds)
     }
 
     private fun updateAppWidget(
-        context: Context, appWidgetManager: AppWidgetManager,
-        appWidgetId: Int
+        context: Context, appWidgetId: Int
     ) {
 
         Log.e("WIDGET", "updateWidget class = " + DataService::class.java.name)
-
+/*
         val i = Intent(context, DataService::class.java)
         // potentially add data to the intent
         i.putExtra("appWidgetId", appWidgetId)
         //context.startService(i)
 
         DataService.enqueueWork(context, i)
+        */
+
+        DataService.requestData(context,"VaxDataDailyJabs", appWidgetId)
 
     }
 
@@ -99,7 +103,7 @@ class VaccineWidget : AppWidgetProvider() {
         //if (intent?.component != null) {
         //    Log.e("COMPONENT---->", intent!!.component.className)
         //}
-        if (intent?.component != null && intent!!.component!!.className == VaccineWidget::class.java.name && intent!!.action == VaccineWidget.DISPLAY_DATA) {
+        if (context != null && intent?.component != null && intent.component!!.className == VaccineWidget::class.java.name && intent.action == DISPLAY_DATA) {
         //if (intent?.component != null && intent!!.component!!.className == SimpleAppWidget::class.java.name) {
 
             Log.e("WIDGET", "Processing intent")
@@ -107,7 +111,7 @@ class VaccineWidget : AppWidgetProvider() {
             assert(intent.extras!!.containsKey("appWidgetId") == true)
 
             val appWidgetManager = AppWidgetManager.getInstance(
-                context!!.applicationContext
+                context.applicationContext
             )
 
             val thisWidget = ComponentName(
@@ -123,11 +127,11 @@ class VaccineWidget : AppWidgetProvider() {
 
             //val vaccineData : ArrayList<Int>? = intent.getIntegerArrayListExtra("VaccineData")
 
-            val vaccineData: VaccineData? = intent.getParcelableExtra<VaccineData>("VaccineData")
+            val vaxDataDailyJabs: VaxDataDailyJabs? = intent.getParcelableExtra<VaxDataDailyJabs>("VaccineData")
             //val dataSets: List<ILineDataSet> = ArrayList()
 
 
-            if (vaccineData != null) {
+            if (vaxDataDailyJabs != null) {
                 //Log.e("YOUPI", msg)
 
                 val chart = LineChart(context)
@@ -141,12 +145,12 @@ class VaccineWidget : AppWidgetProvider() {
                     R.color.orange
                 )
 
-                for (vaccineIdx: Int in 1..VaccineData.vaccineLabel.size - 1) {
+                for (vaccineIdx: Int in 1..VaxDataDailyJabs.vaccineLabel.size - 1) {
 
                     val entries: MutableList<Entry> = ArrayList<Entry>()
 
                     //var entry : String;
-                    for (vaccineDataEntry in vaccineData.data) {
+                    for (vaccineDataEntry in vaxDataDailyJabs.data) {
                         entries.add(
                             Entry(
                                 (vaccineDataEntry.date / 86400).toFloat(),
@@ -156,7 +160,7 @@ class VaccineWidget : AppWidgetProvider() {
                     }
 
                     val dataSet =
-                        LineDataSet(entries.toList(), VaccineData.vaccineLabel[vaccineIdx])
+                        LineDataSet(entries.toList(), VaxDataDailyJabs.vaccineLabel[vaccineIdx])
                     dataSet.setColors(intArrayOf(colors[vaccineIdx]), context)
                     dataSet.setDrawCircles(false)
 
@@ -179,20 +183,23 @@ class VaccineWidget : AppWidgetProvider() {
                 //rl.add(chart); // add the programmatically created chart
                 chart.measure(1000, 1000)
                 chart.layout(0, 0, 1000, 1000)
-                chart.isDrawingCacheEnabled = true
+
                 chart.invalidate()
-                val bitmap = chart.drawingCache
+
+                val bitmap = Bitmap.createBitmap(chart.width, chart.height, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(bitmap)
+                chart.draw(canvas)
                 views.setImageViewBitmap(R.id.imageView, bitmap)
 
                 var totalLastDay = 0
-                for (vaccineIdx: Int in 1 until VaccineData.vaccineLabel.size) {
-                    totalLastDay += vaccineData.data.last().jabs[vaccineIdx]
+                for (vaccineIdx: Int in 1 until VaxDataDailyJabs.vaccineLabel.size) {
+                    totalLastDay += vaxDataDailyJabs.data.last().jabs[vaccineIdx]
                 }
 
-                val lastTime = Date(vaccineData.data.last().date.toLong() ).toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+                val lastTime = Date(vaxDataDailyJabs.data.last().date ).toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
                 val lastTimeStr = lastTime.dayOfMonth.toString() + "/" + lastTime.monthValue.toString() + "/" + (lastTime.year - 2000).toString()
 
-                views.setTextViewText(R.id.textView, "Dernier jour (" + lastTimeStr + "): " + totalLastDay)
+                views.setTextViewText(R.id.textView, "+Dernier jour (" + lastTimeStr + "): " + totalLastDay)
 
 
                 val intentUpdate = Intent(context, VaccineWidget::class.java)

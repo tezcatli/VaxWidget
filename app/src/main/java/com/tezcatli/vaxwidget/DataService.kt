@@ -6,7 +6,8 @@ import android.os.Parcelable
 import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.JobIntentService
-import com.opencsv.CSVReader
+import com.opencsv.CSVParserBuilder
+import com.opencsv.CSVReaderBuilder
 import kotlinx.parcelize.Parcelize
 import java.io.BufferedInputStream
 import java.io.BufferedReader
@@ -17,24 +18,30 @@ import java.net.URL
 import java.util.*
 
 
-@Parcelize
-data class VaccineRow(val date: Long, val jabs: IntArray) : Parcelable
+abstract class VaxData : Parcelable {
+    abstract var name: String
+}
 
 @Parcelize
-data class VaccineData(val data : MutableList<VaccineRow>) : Parcelable {
+data class VaxDataDailyJabsRow(val date: Long, val jabs: IntArray) : Parcelable
+
+@Parcelize
+data class VaxDataDailyJabs(
+    val data: MutableList<VaxDataDailyJabsRow>,
+    override var name: String = "VaxDataDailyJabs"
+) : VaxData() {
     companion object {
         val vaccineLabel = arrayOf<String>("Tous", "Pfizer", "Moderna", "AstraZeneca", "Janssen")
     }
 }
 
-class DataService : JobIntentService() {
+abstract class VaxFetcher {
+    abstract fun fetch(): VaxData
+}
 
-    override fun onHandleWork(intent: Intent) {
-        // We have received work to do.  The system or framework is already
-        // holding a wake lock for us at this point, so we can just go.
-        Log.e("DATASERVICE", "Executing work: $intent")
-
-        var vaccineData = mutableMapOf<Long, IntArray>()
+class VaxFetcherDailyJabs : VaxFetcher() {
+    override fun fetch(): VaxData {
+        val vaxData = mutableMapOf<Long, IntArray>()
 
         try {
             val url =
@@ -45,98 +52,119 @@ class DataService : JobIntentService() {
             //readStream(in);
 
             val r = BufferedReader(InputStreamReader(`in`), 1000)
-            val reader = CSVReader(r, ';')
-            var line: Array<String>?
+            //val reader = CSVReader(r, ';')
 
-            var rowCtr: Int = 0
+            val parser = CSVParserBuilder().withSeparator(';').build()
+
+            val reader = CSVReaderBuilder(r).withCSVParser(parser).withSkipLines(1).build()
+            var line: Array<String>?
 
             while (reader.readNext().also { line = it } != null) {
                 try {
-                    if (line != null && rowCtr != 0) {
+                    Log.e("onUpdate", "-----------------" + line!![0])
 
-                        val dateFields: List<String> = line!![2].split("-")
-                        val calendar = Calendar.getInstance()
-                        calendar.set(dateFields[0].toInt(),dateFields[1].toInt() - 1, dateFields[2].toInt(),0,0,0)
-                        calendar.set(Calendar.MILLISECOND, 0);
-                        val time: Long = calendar.time.time
+                    val dateFields: List<String> = line!![2].split("-")
+                    val calendar = Calendar.getInstance()
+                    calendar.set(
+                        dateFields[0].toInt(),
+                        dateFields[1].toInt() - 1,
+                        dateFields[2].toInt(),
+                        0,
+                        0,
+                        0
+                    )
+                    calendar.set(Calendar.MILLISECOND, 0)
+                    val time: Long = calendar.time.time
 
-                        if (! vaccineData.containsKey(time)) {
-                            //vaccineData[calendar.time] = mutableMapOf<Int, Int>()
-                            vaccineData[time] = IntArray(VaccineData.vaccineLabel.size)
-
-                        }
-
-                        vaccineData[time]!![line!![1].toInt()] = line!![3].toInt() + line!![4].toInt()
+                    if (!vaxData.containsKey(time)) {
+                        //vaccineData[calendar.time] = mutableMapOf<Int, Int>()
+                        vaxData[time] = IntArray(VaxDataDailyJabs.vaccineLabel.size)
 
                     }
+
+                    vaxData[time]!![line!![1].toInt()] = line!![3].toInt() + line!![4].toInt()
+
                 } catch (e: NumberFormatException) {
                     Log.e("onUpdate", "Uncaught exception: " + e.toString(), e)
                 }
-
-                rowCtr++
             }
 
         } catch (e: Exception) {
             Log.e("onUpdate", "Uncaught exception : " + e.toString(), e)
-        } finally {
-
-            val window : Int = 7
-
-
-
-            var parcel = VaccineData(mutableListOf())
-            val sorted = vaccineData.toSortedMap()
-
-
-            var register = Array(window) {
-                IntArray(VaccineData.vaccineLabel.size)
-            }
-
-
-            var ctr : Int = 0
-            for ((k,v) in sorted) {
-                register[ctr.rem(window)] = v
-                if (ctr >= (window-1)) {
-
-                    var sum = IntArray(VaccineData.vaccineLabel.size)
-
-                    for (idx in 0..(VaccineData.vaccineLabel.size-1)) {
-
-                        sum[idx] = 0
-                        for (i in 0..(window-1)) {
-                            sum[idx] += register[i][idx]
-                        }
-                        sum[idx] = sum[idx] / window
-                    }
-
-                    parcel.data.add(VaccineRow(k, sum))
-                }
-                ctr++
-            }
-
-            var broadcastIntent = Intent(this, VaccineWidget::class.java)
-            Log.e("DATASERVICE", "Sending intent to " + VaccineWidget::class.java)
-
-            //var broadcastIntent = Intent(SimpleAppWidget.javaClass.name)
-            broadcastIntent.setAction(VaccineWidget.DISPLAY_DATA)
-            //broadcastIntent.setAction("com.erenutku.com.tezcatli.vaxwidget.PROCESS_RESPONSE")
-            //broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT)
-            //broadcastIntent.setAction("PLEASE_PLAY")
-            //broadcastIntent.putIntegerArrayListExtra("VaccineData", ArrayList(data));
-
-            assert(intent.extras!!.containsKey("appWidgetId") == true)
-
-            broadcastIntent.putExtra("VaccineData", parcel)
-            broadcastIntent.putExtra("appWidgetId", intent!!.getIntExtra("appWidgetId", 0))
-            //broadcastIntent.putExtra("myMessage", "message string");
-            broadcastIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
-            sendBroadcast(broadcastIntent)
-            Log.e("DATASERVICE", "Intent sent")
-
+            throw(e)
         }
 
+        val window = 7
 
-        Log.i("DataService", "Completed service @ " + SystemClock.elapsedRealtime())
+        val vaxDataDailyJabs = VaxDataDailyJabs(mutableListOf())
+        val sorted = vaxData.toSortedMap()
+
+
+        val register = Array(window) {
+            IntArray(VaxDataDailyJabs.vaccineLabel.size)
+        }
+
+        var ctr = 0
+        for ((k, v) in sorted) {
+            register[ctr.rem(window)] = v
+            if (ctr >= (window - 1)) {
+
+                val sum = IntArray(VaxDataDailyJabs.vaccineLabel.size)
+
+                for (idx in 0..(VaxDataDailyJabs.vaccineLabel.size - 1)) {
+
+                    sum[idx] = 0
+                    for (i in 0..(window - 1)) {
+                        sum[idx] += register[i][idx]
+                    }
+                    sum[idx] = sum[idx] / window
+                }
+
+                vaxDataDailyJabs.data.add(VaxDataDailyJabsRow(k, sum))
+            }
+            ctr++
+        }
+
+        return vaxDataDailyJabs
+    }
+}
+
+class DataService : JobIntentService() {
+
+
+
+    override fun onHandleWork(intent: Intent) {
+        // We have received work to do.  The system or framework is already
+        // holding a wake lock for us at this point, so we can just go.
+        Log.e("DATASERVICE", "Executing work: $intent")
+
+        //assert(intent.extras!!.containsKey("vaxDataName") == true)
+        assert(intent.extras!!.containsKey("appWidgetId") == true)
+
+        val vaxDataName = intent.getStringExtra("vaxDataName")
+
+        if (vaxDataName != null) {
+
+            val vaxData = fetchData(vaxDataName)
+
+            if (vaxData != null) {
+
+                val broadcastIntent = Intent(this, VaccineWidget::class.java)
+                Log.e("DATASERVICE", "Sending intent to " + VaccineWidget::class.java)
+
+                broadcastIntent.setAction(VaccineWidget.DISPLAY_DATA)
+
+
+                broadcastIntent.putExtra("VaccineData", vaxData)
+                broadcastIntent.putExtra("appWidgetId", intent.getIntExtra("appWidgetId", 0))
+                broadcastIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+                sendBroadcast(broadcastIntent)
+                Log.e("DATASERVICE", "Intent sent")
+
+
+                Log.i("DataService", "Completed service @ " + SystemClock.elapsedRealtime())
+            }
+        }
     }
 
     override fun onDestroy() {
@@ -149,6 +177,38 @@ class DataService : JobIntentService() {
          * Unique job ID for this service.
          */
         const val JOB_ID = 1000
+
+
+        fun requestData(context: Context, vaxDataName: String, appWidgetId: Int) {
+            when (vaxDataName) {
+                "VaxDataDailyJabs" -> {
+                    //val fetcher = VaxFetcherDailyJabs()
+                    val i = Intent(context, DataService::class.java)
+                    // potentially add data to the intent
+                    i.putExtra("appWidgetId", appWidgetId)
+                    i.putExtra("vaxDataName", "VaxDataDailyJabs")
+
+                    enqueueWork(context, i)
+                }
+                else -> {
+                    Log.e("VaxDataService",  "Unknown data set: " + vaxDataName)
+
+                }
+            }
+        }
+
+        fun fetchData(vaxDataName: String) : VaxData? {
+            when (vaxDataName) {
+                "VaxDataDailyJabs" -> {
+                    val fetcher = VaxFetcherDailyJabs()
+                    return fetcher.fetch()
+                }
+                else -> {
+                    Log.e("VaxDataService",  "Unknown data set: " + vaxDataName)
+                    return null
+                }
+            }
+        }
 
         /**
          * Convenience method for enqueuing work in to this service.
