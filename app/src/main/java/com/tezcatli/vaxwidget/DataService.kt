@@ -19,7 +19,7 @@ import java.util.*
 
 
 abstract class VaxData : Parcelable {
-    abstract var name: String
+    abstract var type: VaxChart.Type
 }
 
 @Parcelize
@@ -28,7 +28,7 @@ data class VaxDataDailyJabsRow(val date: Long, val jabs: IntArray) : Parcelable
 @Parcelize
 data class VaxDataDailyJabs(
     val data: MutableList<VaxDataDailyJabsRow>,
-    override var name: String = "VaxDataDailyJabs"
+    override var type : VaxChart.Type = VaxChart.Type.DailyJabs
 ) : VaxData() {
     companion object {
         val vaccineLabel = arrayOf<String>("Tous", "Pfizer", "Moderna", "AstraZeneca", "Janssen")
@@ -36,11 +36,27 @@ data class VaxDataDailyJabs(
 }
 
 abstract class VaxFetcher {
-    abstract fun fetch(): VaxData
+    abstract fun fetch() : VaxData
+
+    abstract fun getDataFromIntent(intent : Intent) : VaxData?
+
+    companion object {
+        fun build(vaxType: VaxChart.Type): VaxFetcher? {
+            when (vaxType) {
+                VaxChart.Type.DailyJabs -> {
+                    return VaxFetcherDailyJabs()
+                }
+                else -> {
+                    Log.e("VaxDataService",  "Unknown data set: " + vaxType.name)
+                    return null
+                }
+            }
+        }
+    }
 }
 
 class VaxFetcherDailyJabs : VaxFetcher() {
-    override fun fetch(): VaxData {
+    override fun fetch() : VaxData {
         val vaxData = mutableMapOf<Long, IntArray>()
 
         try {
@@ -127,6 +143,10 @@ class VaxFetcherDailyJabs : VaxFetcher() {
 
         return vaxDataDailyJabs
     }
+
+    override fun getDataFromIntent(intent : Intent): VaxData? {
+        return intent.getParcelableExtra<VaxDataDailyJabs>("VaccineData")
+    }
 }
 
 class DataService : JobIntentService() {
@@ -145,7 +165,7 @@ class DataService : JobIntentService() {
 
         if (vaxDataName != null) {
 
-            val vaxData = fetchData(vaxDataName)
+            val vaxData = fetchData(VaxChart.name2Type(vaxDataName)!!)
 
             if (vaxData != null) {
 
@@ -179,35 +199,25 @@ class DataService : JobIntentService() {
         const val JOB_ID = 1000
 
 
-        fun requestData(context: Context, vaxDataName: String, appWidgetId: Int) {
-            when (vaxDataName) {
-                "VaxDataDailyJabs" -> {
-                    //val fetcher = VaxFetcherDailyJabs()
-                    val i = Intent(context, DataService::class.java)
-                    // potentially add data to the intent
-                    i.putExtra("appWidgetId", appWidgetId)
-                    i.putExtra("vaxDataName", "VaxDataDailyJabs")
+        fun requestData(context: Context, vaxType : VaxChart.Type, appWidgetId: Int) {
 
-                    enqueueWork(context, i)
-                }
-                else -> {
-                    Log.e("VaxDataService",  "Unknown data set: " + vaxDataName)
+            val i = Intent(context, DataService::class.java)
+            // potentially add data to the intent
+            i.putExtra("appWidgetId", appWidgetId)
+            i.putExtra("vaxDataName", vaxType.name)
 
-                }
-            }
+            enqueueWork(context, i)
         }
 
-        fun fetchData(vaxDataName: String) : VaxData? {
-            when (vaxDataName) {
-                "VaxDataDailyJabs" -> {
-                    val fetcher = VaxFetcherDailyJabs()
-                    return fetcher.fetch()
-                }
-                else -> {
-                    Log.e("VaxDataService",  "Unknown data set: " + vaxDataName)
-                    return null
-                }
+        fun fetchData(vaxDataType: VaxChart.Type) : VaxData? {
+            val fetcher = VaxFetcher.build(vaxDataType)
+
+            if (fetcher != null) {
+                return fetcher.fetch()
+            } else {
+                return null
             }
+
         }
 
         /**

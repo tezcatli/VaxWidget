@@ -4,9 +4,9 @@
 
 
 buildscript {
-    ext.kotlin_version = '1.5.0'
+    ext.kotlin_version = '1.5.10'
     repositories {
-        jcenter()
+        //jcenter()
         maven {
             url 'https://maven.google.com/'
             name 'Google'
@@ -34,7 +34,7 @@ plugins {
 
 allprojects {
     repositories {
-        jcenter()
+        // jcenter()
         maven {
             url 'https://maven.google.com/'
             name 'Google'
