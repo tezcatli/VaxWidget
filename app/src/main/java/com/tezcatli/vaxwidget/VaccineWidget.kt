@@ -21,15 +21,6 @@ import com.github.mikephil.charting.formatter.ValueFormatter
 import java.time.ZoneId
 import java.util.*
 
-class MyXAxisFormatter : ValueFormatter() {
-    override fun getAxisLabel(value: Float, axis: AxisBase?): String {
-        ///val calendar = Calendar.getInstance()
-        val time = Date(value.toLong() * 86400).toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-        return time.dayOfMonth.toString() + "/" + time.monthValue.toString() + "/" + (time.year - 2000).toString()
-
-    }
-}
-
 
 class VaccineWidget : AppWidgetProvider() {
 
@@ -54,11 +45,6 @@ class VaccineWidget : AppWidgetProvider() {
         super.onEnabled(context)
 
         Log.e("WIDGET", "onEnabled")
-
-        //if (context != null) {
-        //    LocalBroadcastManager.getInstance(context)
-        //        .registerReceiver(this, IntentFilter(DISPLAY_DATA))
-        //}
 
     }
 
@@ -87,178 +73,26 @@ class VaccineWidget : AppWidgetProvider() {
         context: Context, appWidgetId: Int
     ) {
 
-/*
-        val i = Intent(context, DataService::class.java)
-        // potentially add data to the intent
-        i.putExtra("appWidgetId", appWidgetId)
-        //context.startService(i)
-
-        DataService.enqueueWork(context, i)
-        */
-
-        DataService.requestData(context, VaxChart.Type.DailyJabs, appWidgetId)
+        VaxWidgetController.fetch(context, VaxChart.Type.DailyJabs, appWidgetId)
 
     }
 
     override fun onReceive(context: Context?, intent: Intent?) {
         Log.e("WIDGET", "Received intent: " + intent.toString())
-        //if (intent?.component != null) {
-        //    Log.e("COMPONENT---->", intent!!.component.className)
-        //}
-        if (context != null && intent?.component != null && intent.component!!.className == VaccineWidget::class.java.name && intent.action == DISPLAY_DATA) {
-        //if (intent?.component != null && intent!!.component!!.className == SimpleAppWidget::class.java.name) {
 
-            testCounter ++
+        if (intent == null || context == null) {
+            super.onReceive(context, intent)
+            return
+        }
 
-            Log.e("WIDGET ", "Processing intent")
+        when (intent.action ) {
+            DISPLAY_DATA -> {
+                if (intent.component != null && intent.component!!.className == VaccineWidget::class.java.name) {
 
-
-            //val vaccineData : ArrayList<Int>? = intent.getIntegerArrayListExtra("VaccineData")
-
-            val vaxDataDailyJabs: VaxDataDailyJabs? = intent.getParcelableExtra<VaxDataDailyJabs>("VaccineData")
-            //val vaxDataDailyJabs =
-            //val dataSets: List<ILineDataSet> = ArrayList()
-
-
-            if (vaxDataDailyJabs != null) {
-                //Log.e("YOUPI", msg)
-
-                val chart = LineChart(context)
-                val lineData = LineData()
-
-                val colors = arrayOf<Int>(
-                    R.color.black,
-                    R.color.red,
-                    R.color.brown,
-                    R.color.green,
-                    R.color.orange
-                )
-
-                for (vaccineIdx: Int in 1..VaxDataDailyJabs.vaccineLabel.size - 1) {
-
-                    val entries: MutableList<Entry> = ArrayList<Entry>()
-
-                    //var entry : String;
-                    for (vaccineDataEntry in vaxDataDailyJabs.data) {
-                        entries.add(
-                            Entry(
-                                (vaccineDataEntry.date / 86400).toFloat(),
-                                vaccineDataEntry.jabs[vaccineIdx].toFloat()
-                            )
-                        )
-                    }
-
-                    val dataSet =
-                        LineDataSet(entries.toList(), VaxDataDailyJabs.vaccineLabel[vaccineIdx])
-                    dataSet.setColors(intArrayOf(colors[vaccineIdx]), context)
-                    dataSet.setDrawCircles(false)
-
-                    lineData.addDataSet(dataSet)
+                    VaxWidgetController.paint(context, intent)
                 }
-
-
-                chart.data = lineData
-                chart.axisRight.isEnabled = false
-                chart.axisLeft.valueFormatter = LargeValueFormatter()
-                chart.xAxis.setLabelCount(6, true)
-                chart.xAxis.labelRotationAngle = 45.0f
-                chart.xAxis.position = XAxis.XAxisPosition.BOTTOM
-                chart.xAxis.valueFormatter = MyXAxisFormatter()
-                chart.xAxis.setDrawGridLines(true)
-                chart.description.isEnabled = false
-
-                chart.measure(1000, 1000)
-                chart.layout(0, 0, 1000, 1000)
-
-                chart.invalidate()
-
-                val bitmap = Bitmap.createBitmap(chart.width, chart.height, Bitmap.Config.ARGB_8888)
-                val canvas = Canvas(bitmap)
-                chart.draw(canvas)
-
-                var totalLastDay = 0
-                for (vaccineIdx: Int in 1 until VaxDataDailyJabs.vaccineLabel.size) {
-                    totalLastDay += vaxDataDailyJabs.data.last().jabs[vaccineIdx]
-                }
-
-                val lastTime = Date(vaxDataDailyJabs.data.last().date ).toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-                val lastTimeStr = lastTime.dayOfMonth.toString() + "/" + lastTime.monthValue.toString() + "/" + (lastTime.year - 2000).toString()
-
-
-                assert(intent.extras!!.containsKey("appWidgetId") == true)
-
-                val appWidgetManager = AppWidgetManager.getInstance(
-                    context.applicationContext
-                )
-
-                val thisWidget = ComponentName(
-                    context.applicationContext,
-                    VaccineWidget::class.java
-                )
-
-                val appWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
-                //val idArray = intArrayOf(appWidgetId)
-
-                val appWidgetId = intent.getIntExtra("appWidgetId", 0)
-                val views = RemoteViews(context.packageName, R.layout.simple_app_widget)
-
-
-                views.setImageViewBitmap(R.id.imageView, bitmap)
-                views.setTextViewText(R.id.textView, "Dernier jour (" + lastTimeStr + "): " + totalLastDay)
-
-
-                val intentUpdate = Intent(context, VaccineWidget::class.java)
-                intentUpdate.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-//Update the current widget instance only, by creating an array that contains the widget’s unique ID//
-                intentUpdate.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds)
-                intentUpdate.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-
-//Wrap the intent as a PendingIntent, using PendingIntent.getBroadcast()//
-                val pendingUpdate = PendingIntent.getBroadcast(
-                    context, appWidgetId, intentUpdate,
-                    PendingIntent.FLAG_UPDATE_CURRENT
-                )
-
-//Send the pending intent in response to the user tapping the ‘Update’ TextView//
-                views.setOnClickPendingIntent(R.id.imageView, pendingUpdate)
-                views.setOnClickPendingIntent(R.id.textView, pendingUpdate)
-
-
-                appWidgetManager.updateAppWidget(appWidgetId, views)
-
-
-            } else {
-
-                assert(intent.extras!!.containsKey("appWidgetId") == true)
-
-                val appWidgetManager = AppWidgetManager.getInstance(
-                    context.applicationContext
-                )
-
-                val thisWidget = ComponentName(
-                    context.applicationContext,
-                    VaccineWidget::class.java
-                )
-
-                val appWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
-                //val idArray = intArrayOf(appWidgetId)
-
-                val appWidgetId = intent.getIntExtra("appWidgetId", 0)
-                val views = RemoteViews(context.packageName, R.layout.simple_app_widget)
-
-
-                val intentUpdate2 = Intent(context, VaccineWidget::class.java)
-                intentUpdate2.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-//Update the current widget instance only, by creating an array that contains the widget’s unique ID//
-                intentUpdate2.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds)
-                intentUpdate2.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-                //Wrap the intent as a PendingIntent, using PendingIntent.getBroadcast()//
-                val pendingUpdate2 = PendingIntent.getBroadcast(
-                    context, appWidgetId, intentUpdate2,
-                    PendingIntent.FLAG_UPDATE_CURRENT
-                )
-                views.setOnClickPendingIntent(R.id.textView, pendingUpdate2)
-                appWidgetManager.updateAppWidget(appWidgetId, views)
+            }
+            else -> {
 
             }
         }

@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest package="com.tezcatli.vaxwidget"
-          xmlns:android="http://schemas.android.com/apk/res/android">
-    <uses-permission android:name="android.permission.INTERNET"/>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.tezcatli.vaxwidget">
+
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
@@ -11,17 +13,8 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-<!--
-        <activity android:name=".MainActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>
-        </activity>
--->
 
-
-        <receiver android:name="com.tezcatli.vaxwidget.VaccineWidget">
+        <receiver android:name=".VaccineWidget">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="android.appwidget.action.APPWIDGET_ENABLED" />
@@ -31,27 +24,29 @@
                 <action android:name="com.tezcatli.vaxwidget.DISPLAY_DATA" />
 
             </intent-filter>
-<!--
-            <intent-filter>
-                <action android:name="com.tezcatli.vaxwidgetget.DISPLAY_DATA" />
-            </intent-filter>
--->
+            <!--
+                        <intent-filter>
+                            <action android:name="com.tezcatli.vaxwidgetget.DISPLAY_DATA" />
+                        </intent-filter>
+            -->
 
             <meta-data
-                android:exported="true"
                 android:name="android.appwidget.provider"
-                android:resource="@xml/simple_app_widget_info"/>
+                android:exported="true"
+                android:resource="@xml/vax_widget_info" />
         </receiver>
 
-        <!--
+
+        <activity android:name=".ConfigureActivity">
+            <intent-filter>
+
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <service
-            android:name=".DataService"
-            >
-        </service>
--->
-        <service android:name="com.tezcatli.vaxwidget.DataService"
-            android:permission="android.permission.BIND_JOB_SERVICE" >
-        </service>
+            android:name="com.tezcatli.vaxwidget.VaxWidgetController"
+            android:permission="android.permission.BIND_JOB_SERVICE"></service>
 
 
     </application>

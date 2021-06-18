@@ -2,4 +2,7 @@
     <string name="app_name">VaxWidget</string>
     <string name="appwidget_text">Tap It!</string>
     <string name="add_widget">Add widget</string>
+    <string name="preference_file_key">configuration_file</string>
+    <string name="configuration_json_key">configuration_json_key</string>
+    <string name="preference_key">preference_key</string>
 </resources>

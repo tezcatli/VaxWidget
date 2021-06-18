@@ -1,34 +1,39 @@
 package com.tezcatli.vaxwidget
 
-import android.graphics.Bitmap
+import android.content.Context
+import android.content.Intent
+import android.os.Parcelable
 import android.util.Log
 
+abstract class VaxChart {
 
-interface IndexedEnum {
-    val name: String
+
+    enum class Type(val short: String, val long: String) {
+        DailyJabs("Daily Jabs", "Nombre d'injections quotidiennes"),
+        ImmunizationCoverage("Immunization Coverage", "Couverture d'immunisation")
+    }
+
+    abstract val type: Type
+
+    abstract fun serialize(): Parcelable
+    abstract fun deserialize(intent: Intent, name: String)
+
+    abstract fun fetch()
+
+    abstract fun paint(context: Context, appWidgetId : Int)
 
     companion object {
-        inline fun <reified T : IndexedEnum> valueOf(name: String) =
-            T::class.java.takeIf { it.isEnum }?.enumConstants?.find {
-                Log.e("name ---->", name)
-                it.name == name
+        fun build(type: Type): VaxChart? {
+            when (type) {
+                Type.DailyJabs -> {
+                    return VaxChartDailyJabs()
+                }
+                else -> {
+                    Log.e("VaxWidget", "Unknown type: " + type.name)
+                    return null
+                }
             }
-    }
-}
 
-abstract class VaxChart  {
-
-    abstract fun draw(vaxData: VaxData): Bitmap
-
-    enum class Type(name: String) : IndexedEnum {
-        DailyJabs("Daily Jabs")
-    }
-
-    companion object {
-        fun name2Type(name : String) : Type? {
-            return IndexedEnum.valueOf<Type>(name)
         }
     }
-
 }
-
