@@ -23,6 +23,7 @@
 
                 <action android:name="com.tezcatli.vaxwidget.DISPLAY_DATA" />
 
+
             </intent-filter>
             <!--
                         <intent-filter>

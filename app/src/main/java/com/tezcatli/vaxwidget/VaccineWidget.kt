@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.os.Bundle
 import android.util.Log
 import android.widget.RemoteViews
 import com.github.mikephil.charting.charts.LineChart
@@ -26,8 +27,6 @@ class VaccineWidget : AppWidgetProvider() {
 
 
     companion object {
-        var testCounter = 0
-
         val DISPLAY_DATA: String = "com.tezcatli.vaxwidget.DISPLAY_DATA"
     }
 
@@ -54,6 +53,12 @@ class VaccineWidget : AppWidgetProvider() {
         super.onRestored(context, oldWidgetIds, newWidgetIds)
     }
 
+    override fun onAppWidgetOptionsChanged(context: Context, appWidgetManager: AppWidgetManager,
+        appWidgetId: Int, newOptions: Bundle
+    ) {
+        Log.e("WIDGET", "onAppWidgetOptionsChanged")
+    }
+
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -72,23 +77,21 @@ class VaccineWidget : AppWidgetProvider() {
     private fun updateAppWidget(
         context: Context, appWidgetId: Int
     ) {
-
+        Log.e("VaccineWidget", "updateWidget " + appWidgetId)
         VaxWidgetController.fetch(context, VaxChart.Type.DailyJabs, appWidgetId)
-
     }
 
     override fun onReceive(context: Context?, intent: Intent?) {
-        Log.e("WIDGET", "Received intent: " + intent.toString())
+        Log.e("WIDGET ", "Received intent: " + intent.toString())
 
         if (intent == null || context == null) {
             super.onReceive(context, intent)
             return
         }
 
-        when (intent.action ) {
+        when (intent.action) {
             DISPLAY_DATA -> {
                 if (intent.component != null && intent.component!!.className == VaccineWidget::class.java.name) {
-
                     VaxWidgetController.paint(context, intent)
                 }
             }

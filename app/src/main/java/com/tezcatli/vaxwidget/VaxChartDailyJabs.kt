@@ -1,5 +1,6 @@
 package com.tezcatli.vaxwidget
 
+import android.app.AlarmManager
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.content.Context
@@ -28,6 +29,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.time.ZoneId
 import java.util.*
+
 
 class VaxChartDailyJabs : VaxChart() {
 
@@ -64,7 +66,20 @@ class VaxChartDailyJabs : VaxChart() {
         vaxData = intent.getParcelableExtra(name)!!
     }
 
+    override fun isDataValid(): Boolean {
+        return ! vaxData.data.isEmpty()
+    }
+
+    companion object {
+        var testCounter = 0
+    }
+
+
     override fun fetch() {
+
+        Log.e("VaxChartDailyJabs", "Fetch starting")
+
+
         val vaxData = mutableMapOf<Long, IntArray>()
 
         try {
@@ -151,7 +166,7 @@ class VaxChartDailyJabs : VaxChart() {
         this.vaxData = vaxDataDailyJabs
     }
 
-    override fun paint(context: Context, appWidgetId: Int) {
+    override fun paint2(context: Context, appWidgetId: Int, width: Int, height : Int) : RemoteViews {
 
 
         Log.e("VaxChartDailyJabs", "Paint starting")
@@ -204,8 +219,8 @@ class VaxChartDailyJabs : VaxChart() {
         chart.xAxis.setDrawGridLines(true)
         chart.description.isEnabled = false
 
-        chart.measure(1000, 1000)
-        chart.layout(0, 0, 1000, 1000)
+        chart.measure(width, height)
+        chart.layout(0, 0, width, height)
 
         chart.invalidate()
 
@@ -224,32 +239,37 @@ class VaxChartDailyJabs : VaxChart() {
         val lastTimeStr =
             lastTime.dayOfMonth.toString() + "/" + lastTime.monthValue.toString() + "/" + (lastTime.year - 2000).toString()
 
-        val appWidgetManager = AppWidgetManager.getInstance(
-            context.applicationContext
-        )
-
         val views = RemoteViews(context.packageName, R.layout.chart_widget_layout)
 
         views.setImageViewBitmap(R.id.imageView, bitmap)
         views.setTextViewText(
             R.id.textView,
-            "Dernier jour (" + VaccineWidget.testCounter + " " + lastTimeStr + "): " + totalLastDay
+            "Dernier jour (" + testCounter + " " + lastTimeStr + "): " + totalLastDay
         )
+
+        testCounter ++
 
         val intentUpdate = Intent(context, VaccineWidget::class.java)
         intentUpdate.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-        intentUpdate.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, arrayOf(appWidgetId))
+        //intentUpdate.setAction(VaccineWidget.DISPLAY_DATA2)
+
+        intentUpdate.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(appWidgetId))
         //intentUpdate.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
 
         val pendingUpdate = PendingIntent.getBroadcast(
             context, appWidgetId, intentUpdate,
-            PendingIntent.FLAG_UPDATE_CURRENT
+            PendingIntent.FLAG_CANCEL_CURRENT
         )
 
 
         views.setOnClickPendingIntent(R.id.imageView, pendingUpdate)
-        views.setOnClickPendingIntent(R.id.textView, pendingUpdate)
+        //views.setOnClickPendingIntent(R.id.textView, pendingUpdate)
 
-        appWidgetManager.updateAppWidget(appWidgetId, views)
+        //val alarmIntent = Intent(context, VaccineWidget
+
+
+
+        return views
+
     }
 }

@@ -1,5 +1,6 @@
 package com.tezcatli.vaxwidget
 
+import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
 import android.util.Log
@@ -14,7 +15,7 @@ class VaxWidgetController : JobIntentService() {
         Log.e("DATASERVICE", "Executing work: $intent")
 
         //assert(intent.extras!!.containsKey("vaxDataName") == true)
-        assert(intent.extras!!.containsKey("appWidgetId") == true)
+        //assert(intent.extras!!.containsKey("appWidgetId") == true)
 
         val vaxDataName = intent.getStringExtra("VaxType")
 
@@ -36,8 +37,8 @@ class VaxWidgetController : JobIntentService() {
 
                 broadcastIntent.putExtra("VaxType", vaxChart.type.name)
                 broadcastIntent.putExtra("VaxData", vaxChart.serialize())
-                broadcastIntent.putExtra("appWidgetId", intent.getIntExtra("appWidgetId", 0))
-                broadcastIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+                broadcastIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, 0))
+                //broadcastIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent)
                 sendBroadcast(broadcastIntent)
                 Log.e("DATASERVICE", "Intent sent")
 
@@ -58,6 +59,8 @@ class VaxWidgetController : JobIntentService() {
 
 
         fun fetch(context: Context, type: VaxChart.Type, appWidgetId: Int) {
+
+            Log.e("VaxWidgetController","Enqueuing")
 
             val intent = Intent(context, VaxWidgetController::class.java)
             // potentially add data to the intent
