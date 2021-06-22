@@ -14,8 +14,6 @@ class VaxWidgetController : JobIntentService() {
         // holding a wake lock for us at this point, so we can just go.
         Log.e("DATASERVICE", "Executing work: $intent")
 
-        //assert(intent.extras!!.containsKey("vaxDataName") == true)
-        //assert(intent.extras!!.containsKey("appWidgetId") == true)
 
         val vaxDataName = intent.getStringExtra("VaxType")
 
@@ -38,7 +36,6 @@ class VaxWidgetController : JobIntentService() {
                 broadcastIntent.putExtra("VaxType", vaxChart.type.name)
                 broadcastIntent.putExtra("VaxData", vaxChart.serialize())
                 broadcastIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, 0))
-                //broadcastIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent)
                 sendBroadcast(broadcastIntent)
                 Log.e("DATASERVICE", "Intent sent")
 

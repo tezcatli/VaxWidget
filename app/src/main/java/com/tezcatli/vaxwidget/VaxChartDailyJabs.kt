@@ -1,6 +1,5 @@
 package com.tezcatli.vaxwidget
 
-import android.app.AlarmManager
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.content.Context

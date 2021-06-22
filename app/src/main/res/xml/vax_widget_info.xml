@@ -9,7 +9,10 @@
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="100000000"
     android:widgetCategory="home_screen"
-    android:configure="com.tezcatli.vaxwidget.ConfigureActivity"
     >
 </appwidget-provider>
+<!--
+    android:configure="com.tezcatli.vaxwidget.ConfigureActivity"
+
+-->
 

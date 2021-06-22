@@ -36,7 +36,7 @@ abstract class VaxChart {
         )
 
         val manager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        manager.set(AlarmManager.ELAPSED_REALTIME, 10000, PendingIntent.getBroadcast(context,
+        manager.set(AlarmManager.ELAPSED_REALTIME, 900000, PendingIntent.getBroadcast(context,
             appWidgetId, Intent(context, VaccineWidget::class.java).apply {
                 action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
                 putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(appWidgetId))
@@ -77,7 +77,6 @@ abstract class VaxChart {
                     return null
                 }
             }
-
         }
     }
 }
