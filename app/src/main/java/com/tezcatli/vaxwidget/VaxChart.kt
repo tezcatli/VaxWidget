@@ -7,13 +7,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.content.res.TypedArray
+import android.os.Bundle
 import android.os.Parcelable
 import android.util.Log
 import android.util.TypedValue
 import android.widget.RemoteViews
 
 
-abstract class VaxChart {
+abstract class VaxChart  {
 
 
     enum class Type(val short: String, val long: String) {
@@ -23,25 +24,18 @@ abstract class VaxChart {
 
     abstract val type: Type
 
-    abstract fun serialize(): Parcelable
-    abstract fun deserialize(intent: Intent, name: String)
-
     abstract fun fetch()
-    abstract fun paint2(context: Context, appWidgetId : Int, width: Int, height : Int) : RemoteViews
+    abstract fun serialize(): Parcelable
+
+
+    abstract fun deserialize(intent : Intent, name : String)
+    abstract fun paint2(appWidgetId : Int, width: Int, height : Int) : RemoteViews
     abstract fun isDataValid() : Boolean
 
     fun paint(context: Context, appWidgetId : Int) {
         val appWidgetManager = AppWidgetManager.getInstance(
             context.applicationContext
         )
-
-        val manager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        manager.set(AlarmManager.ELAPSED_REALTIME, 900000, PendingIntent.getBroadcast(context,
-            appWidgetId, Intent(context, VaccineWidget::class.java).apply {
-                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(appWidgetId))
-            },
-            PendingIntent.FLAG_CANCEL_CURRENT))
 
 
         val orientation = context.resources.configuration.orientation
@@ -63,14 +57,31 @@ abstract class VaxChart {
 
         Log.e(this.javaClass.name, "Width = ${width}, height ${height}")
 
-        appWidgetManager.updateAppWidget(appWidgetId, paint2(context, appWidgetId, width, height))
+        val views = paint2(appWidgetId, width, height)
+
+        val intentUpdate = Intent(context, VaccineWidget::class.java)
+        intentUpdate.action = VaccineWidget.NEXT_SLIDE_PLEASE
+        intentUpdate.putExtra("appWidgetId", appWidgetId)
+        val pendingUpdate = PendingIntent.getBroadcast(
+            context, appWidgetId, intentUpdate,
+            PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        views.setOnClickPendingIntent(R.id.imageView, pendingUpdate)
+        //views.setOnClickPendingIntent(R.id.textView, pendingUpdate)
+
+        //val alarmIntent = Intent(context, VaccineWidget
+
+        appWidgetManager.updateAppWidget(appWidgetId, views)
     }
 
     companion object {
-        fun build(type: Type): VaxChart? {
+        fun build(context : Context, type: Type): VaxChart? {
             when (type) {
                 Type.DailyJabs -> {
-                    return VaxChartDailyJabs()
+                    return VaxChartDailyJabs(context)
+                }
+                Type.ImmunizationCoverage -> {
+                    return VaxChartImmunizationCoverage(context)
                 }
                 else -> {
                     Log.e("VaxWidget", "Unknown type: " + type.name)

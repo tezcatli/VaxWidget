@@ -1,86 +1,210 @@
 package com.tezcatli.vaxwidget
 
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
+import android.os.SystemClock
 import android.util.Log
-import androidx.core.app.JobIntentService
+import androidx.work.*
+import java.util.concurrent.TimeUnit
 
 
-class VaxWidgetController : JobIntentService() {
+class VaxWidgetController(val context: Context) {
 
-    override fun onHandleWork(intent: Intent) {
-        // We have received work to do.  The system or framework is already
-        // holding a wake lock for us at this point, so we can just go.
-        Log.e("DATASERVICE", "Executing work: $intent")
+    class ControllerWorker(val appContext: Context, workerParams: WorkerParameters) :
+        Worker(appContext, workerParams) {
+
+        override fun doWork(): Result {
+            // We have received work to do.  The system or framework is already
+            // holding a wake lock for us at this point, so we can just go.
+            Log.e("DATASERVICE", "Executing work")
+
+            //return Result.success()
+
+            val vaxTypeName = inputData.getString("VaxType")
+
+            if (vaxTypeName != null) {
+
+                val vaxType = VaxChart.Type.valueOf(vaxTypeName)
+
+                //val vaxChart = VaxChart.build(VaxChart.Type.valueOf(vaxDataName))
+                val vaxChart = VaxChart.build(appContext, vaxType)
+
+                if (vaxChart != null) {
+
+                    //httpFetcher.requestGet(URL("https://www.google.fr/"))
+
+                    vaxChart.fetch()
+
+                    val broadcastIntent = Intent(applicationContext, VaccineWidget::class.java)
+                    Log.e("DATASERVICE", "Sending intent to " + VaccineWidget::class.java)
+
+                    broadcastIntent.setAction(VaccineWidget.DISPLAY_DATA)
+
+                    broadcastIntent.putExtra("VaxType", vaxType.name)
+                    broadcastIntent.putExtra("appWidgetId", inputData.getInt("appWidgetId", 0))
+                    broadcastIntent.putExtra("VaxData", vaxChart.serialize())
+
+                    applicationContext.sendBroadcast(broadcastIntent)
+                    Log.e("DATASERVICE", "Intent sent")
+                }
+            }
+
+            return Result.success()
+
+        }
+    }
+
+    data class WidgetState(
+        val configuration: ConfigurationManager.ConfigurationEntry,
+        var chartCurrentIdx: Int = 0
+    )
+
+    val widgets = mutableMapOf<Int, WidgetState>()
+
+    /**
+     * Unique job ID for this service.
+     */
 
 
-        val vaxDataName = intent.getStringExtra("VaxType")
+    fun update(appWidgetId: Int) {
 
-        if (vaxDataName != null) {
+        val newWidget = !widgets.containsKey(appWidgetId)
 
-            //val vaxChart = VaxChart.build(VaxChart.Type.valueOf(vaxDataName))
-            val vaxChart = VaxChart.build(VaxChart.Type.valueOf(vaxDataName))
+        addWidget(appWidgetId)
+
+        val state = widgets.get(appWidgetId)
+
+        if (state != null) {
+
+            if (newWidget)
+                nextSlidePlease(appWidgetId)
+            else {
+                Log.e(
+                    "VaxWidgetController",
+                    "Enqueuing ${state.configuration.charts.get(state.chartCurrentIdx)}"
+                )
+
+                val uploadWorkRequest: WorkRequest =
+                    OneTimeWorkRequestBuilder<ControllerWorker>().setInputData(
+                        workDataOf(
+                            "appWidgetId" to appWidgetId,
+                            "VaxType" to state.configuration.charts.get(state.chartCurrentIdx)
+                        )
+                    ).build()
+
+                WorkManager.getInstance(context).enqueue(uploadWorkRequest)
+            }
+
+        }
+    }
 
 
-            if (vaxChart != null) {
+    fun paint(appWidgetId: Int, type: VaxChart.Type, intent: Intent) {
 
-                vaxChart.fetch()
+        val vaxChart = VaxChart.build(context, type)!!
+        vaxChart.deserialize(intent, "VaxData")
+        vaxChart.paint(context, appWidgetId)
+    }
 
-                val broadcastIntent = Intent(this, VaccineWidget::class.java)
-                Log.e("DATASERVICE", "Sending intent to " + VaccineWidget::class.java)
+    fun nextSlidePlease(appWidgetId: Int) {
 
-                broadcastIntent.setAction(VaccineWidget.DISPLAY_DATA)
+        Log.e("VaxWidgetController", "nextSlidePlease ${appWidgetId}")
+
+        update(appWidgetId)
+
+        val state = widgets.get(appWidgetId)
+        if (state != null) {
+            Log.e("VaxWidgetController", "got state")
 
 
-                broadcastIntent.putExtra("VaxType", vaxChart.type.name)
-                broadcastIntent.putExtra("VaxData", vaxChart.serialize())
-                broadcastIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, 0))
-                sendBroadcast(broadcastIntent)
-                Log.e("DATASERVICE", "Intent sent")
+            val manager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            manager.setExact(
+                AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() +
+                state.configuration.period * 1000L,
+                PendingIntent.getBroadcast(
+                    context,
+                    appWidgetId, Intent(context, VaccineWidget::class.java).apply {
+                        action = VaccineWidget.NEXT_SLIDE_PLEASE
+                        putExtra("appWidgetId", appWidgetId)
+                    },
+                    PendingIntent.FLAG_UPDATE_CURRENT
+                )
+            )
 
+            state.chartCurrentIdx =
+                (state.chartCurrentIdx + 1) % state.configuration.charts.size
+
+        }
+    }
+
+    fun addWidget(appWidgetId: Int) {
+        if (!widgets.containsKey(appWidgetId)) {
+
+            val configuration =
+                (context.applicationContext as VaxApplication).serviceLocator.configurationManager.getEntry(
+                    appWidgetId
+                )
+            if (configuration != null)
+                widgets.put(appWidgetId, WidgetState(configuration))
+
+        }
+    }
+
+    fun deleteWidget(appWidgetId: Int) {
+        if (!widgets.containsKey(appWidgetId)) {
+            widgets.remove(appWidgetId)
+        }
+    }
+
+
+    fun handleIntent(intent: Intent) {
+        val extras = intent.extras
+
+        if (extras != null) {
+            if (extras.containsKey("appWidgetId")) {
+
+                val appWidgetId = intent.getIntExtra("appWidgetId", 0)
+
+                when (intent.action) {
+                    VaccineWidget.DISPLAY_DATA -> {
+                        val vaxTypeName = intent.getStringExtra("VaxType")
+                        //val bundle = intent.getBundleExtra("VaxData")
+
+                        if (vaxTypeName != null) {
+                            if (intent.component != null && intent.component!!.className == VaccineWidget::class.java.name) {
+                                (context.applicationContext as VaxApplication).serviceLocator.vaxWidgetController.paint(
+                                    appWidgetId,
+                                    VaxChart.Type.valueOf(vaxTypeName),
+                                    intent
+                                )
+                            }
+                        }
+                    }
+                    VaccineWidget.NEXT_SLIDE_PLEASE -> {
+                        if (intent.component != null && intent.component!!.className == VaccineWidget::class.java.name) {
+                            (context.applicationContext as VaxApplication).serviceLocator.vaxWidgetController.nextSlidePlease(
+                                appWidgetId
+                            )
+                        }
+                    }
+                    else -> {
+
+                    }
+                }
             }
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    init {
+        val save = OneTimeWorkRequestBuilder<ControllerWorker>()
+            .setInitialDelay(10000, TimeUnit.DAYS)
+            .build()
+        WorkManager.getInstance(context).enqueue(save)
     }
 
-
-    companion object {
-        /**
-         * Unique job ID for this service.
-         */
-        const val JOB_ID = 1000
-
-
-        fun fetch(context: Context, type: VaxChart.Type, appWidgetId: Int) {
-
-            Log.e("VaxWidgetController","Enqueuing")
-
-            val intent = Intent(context, VaxWidgetController::class.java)
-            // potentially add data to the intent
-            intent.putExtra("appWidgetId", appWidgetId)
-            intent.putExtra("VaxType", type.name)
-
-            enqueueWork(
-                context,
-                VaxWidgetController::class.java, JOB_ID, intent
-            )
-        }
-
-
-        fun paint(context: Context, intent: Intent) {
-
-            val vaxDataName = intent.getStringExtra("VaxType")!!
-            val appWidgetId = intent.getIntExtra("appWidgetId", 0)
-
-            val vaxChart = VaxChart.build(VaxChart.Type.valueOf(vaxDataName))!!
-            vaxChart.deserialize(intent, "VaxData")
-            vaxChart.paint(context, appWidgetId)
-        }
-
-    }
 }
 

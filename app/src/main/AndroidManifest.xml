@@ -11,10 +11,15 @@
         android:icon="@mipmap/logo"
         android:label="@string/app_name"
         android:supportsRtl="true"
+        android:name="com.tezcatli.vaxwidget.VaxApplication"
         android:theme="@style/AppTheme">
 
 
-        <receiver android:name=".VaccineWidget">
+        <receiver android:name=".VaccineWidget"
+
+            android:enabled="true"
+            android:exported="true" >
+
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="android.appwidget.action.APPWIDGET_ENABLED" />
@@ -22,7 +27,7 @@
                 <action android:name="android.appwidget.action.APPWIDGET_DISABLED" />
 
                 <action android:name="com.tezcatli.vaxwidget.DISPLAY_DATA" />
-
+                <action android:name="com.tezcatli.vaxwidget.NEXT_SLIDE_PLEASE" />
 
             </intent-filter>
             <!--
@@ -40,14 +45,15 @@
 
         <activity android:name=".ConfigureActivity">
             <intent-filter>
-
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
         </activity>
 
+        <!--
         <service
             android:name="com.tezcatli.vaxwidget.VaxWidgetController"
             android:permission="android.permission.BIND_JOB_SERVICE"></service>
+        -->
 
 
     </application>
