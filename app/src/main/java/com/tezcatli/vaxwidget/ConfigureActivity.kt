@@ -77,7 +77,7 @@ class ConfigureActivity : Activity() {
 
             configurationManager.setEntry(appWidgetId, newConfigurationEntry)
 
-            configurationManager.saveConf()
+            //configurationManager.saveConf()
 
 
             /*
@@ -97,6 +97,8 @@ class ConfigureActivity : Activity() {
             applicationContext.sendBroadcast(Intent(applicationContext, VaccineWidget::class.java).apply {
                 action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
                 putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(appWidgetId))})
+
+            Log.e("Config", "Notifying configuration done for widget $appWidgetId")
 
             finish()
         }

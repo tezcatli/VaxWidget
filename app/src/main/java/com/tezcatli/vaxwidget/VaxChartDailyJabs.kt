@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.os.Parcelable
 import android.util.Log
 import android.widget.RemoteViews
@@ -242,6 +243,10 @@ class VaxChartDailyJabs constructor(var context: Context) : VaxChart() {
             chart.xAxis.position = XAxis.XAxisPosition.BOTTOM
             chart.xAxis.valueFormatter = MyXAxisFormatter()
             chart.xAxis.setDrawGridLines(true)
+            chart.xAxis.setTextColor(Color.WHITE)
+            chart.axisLeft.setTextColor(Color.WHITE)
+            chart.legend.setTextColor(Color.WHITE)
+            chart.legend.isWordWrapEnabled  = true
             chart.description.isEnabled = false
 
             chart.measure(width, height)
@@ -270,7 +275,7 @@ class VaxChartDailyJabs constructor(var context: Context) : VaxChart() {
 
             views.setTextViewText(
                 R.id.textView,
-                "Doses par jour (${lastTimeStr}): "
+                "Doses par jour (${lastTimeStr})"
             )
 
             testCounter++

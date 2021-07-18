@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.os.Bundle
 import android.os.Parcelable
 import android.util.Log
@@ -49,6 +50,8 @@ class VaxChartImmunizationCoverage constructor(var context: Context) : VaxChart(
                     29 to "25-29", 39 to "30-39", 49 to "40-49", 59 to "50-59", 64 to "60-64",
                     69 to "60-69", 74 to "70-74", 79 to "75-79", 80 to "80+")
             val dataClassList = dataClass.keys.sorted().mapIndexed() { it, value -> value to it }.toMap()
+            val dataClassName = dataClass.keys.sorted()
+
         }
     }
 
@@ -251,7 +254,7 @@ class VaxChartImmunizationCoverage constructor(var context: Context) : VaxChart(
                 val dataSet =
                     LineDataSet(
                         entries.toList(),
-                        Data.dataClass[vaccineIdx]
+                        Data.dataClass[Data.dataClass.keys.elementAt(vaccineIdx)]
                     )
                 dataSet.setColors(intArrayOf(colors[vaccineIdx]), context)
                 dataSet.setDrawCircles(false)
@@ -268,6 +271,11 @@ class VaxChartImmunizationCoverage constructor(var context: Context) : VaxChart(
             chart.xAxis.position = XAxis.XAxisPosition.BOTTOM
             chart.xAxis.valueFormatter = MyXAxisFormatter()
             chart.xAxis.setDrawGridLines(true)
+            chart.xAxis.setTextColor(Color.WHITE)
+            chart.axisLeft.setTextColor(Color.WHITE)
+            chart.legend.setTextColor(Color.WHITE)
+            chart.legend.isWordWrapEnabled  = true
+
             chart.description.isEnabled = false
 
             chart.measure(width, height)
@@ -293,7 +301,7 @@ class VaxChartImmunizationCoverage constructor(var context: Context) : VaxChart(
 
             views.setTextViewText(
                 R.id.textView,
-                "Couverture vaccinale (${lastTimeStr}")
+                "Couverture vaccinale (${lastTimeStr})")
 
             testCounter++
 

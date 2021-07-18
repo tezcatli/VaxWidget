@@ -81,24 +81,22 @@ class VaxWidgetController(val context: Context) {
         if (state != null) {
 
             if (newWidget)
-                nextSlidePlease(appWidgetId)
-            else {
-                Log.e(
-                    "VaxWidgetController",
-                    "Enqueuing ${state.configuration.charts.get(state.chartCurrentIdx)}"
-                )
+                setTimer(appWidgetId)
 
-                val uploadWorkRequest: WorkRequest =
-                    OneTimeWorkRequestBuilder<ControllerWorker>().setInputData(
-                        workDataOf(
-                            "appWidgetId" to appWidgetId,
-                            "VaxType" to state.configuration.charts.get(state.chartCurrentIdx)
-                        )
-                    ).build()
+            Log.e(
+                "VaxWidgetController",
+                "Enqueuing ${state.configuration.charts.get(state.chartCurrentIdx)}"
+            )
 
-                WorkManager.getInstance(context).enqueue(uploadWorkRequest)
-            }
+            val uploadWorkRequest: WorkRequest =
+                OneTimeWorkRequestBuilder<ControllerWorker>().setInputData(
+                    workDataOf(
+                        "appWidgetId" to appWidgetId,
+                        "VaxType" to state.configuration.charts.get(state.chartCurrentIdx)
+                    )
+                ).build()
 
+            WorkManager.getInstance(context).enqueue(uploadWorkRequest)
         }
     }
 
@@ -110,21 +108,18 @@ class VaxWidgetController(val context: Context) {
         vaxChart.paint(context, appWidgetId)
     }
 
-    fun nextSlidePlease(appWidgetId: Int) {
+    fun setTimer(appWidgetId: Int) {
+        Log.e("VaxWidgetController", "setTimer ${appWidgetId}")
 
-        Log.e("VaxWidgetController", "nextSlidePlease ${appWidgetId}")
-
-        update(appWidgetId)
 
         val state = widgets.get(appWidgetId)
         if (state != null) {
             Log.e("VaxWidgetController", "got state")
 
-
             val manager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             manager.setExact(
                 AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() +
-                state.configuration.period * 1000L,
+                        state.configuration.period * 1000L,
                 PendingIntent.getBroadcast(
                     context,
                     appWidgetId, Intent(context, VaccineWidget::class.java).apply {
@@ -134,12 +129,25 @@ class VaxWidgetController(val context: Context) {
                     PendingIntent.FLAG_UPDATE_CURRENT
                 )
             )
+        }
+    }
 
+    fun nextSlidePlease(appWidgetId: Int) {
+
+        Log.e("VaxWidgetController", "nextSlidePlease ${appWidgetId}")
+
+        update(appWidgetId)
+        setTimer(appWidgetId)
+
+        val state = widgets.get(appWidgetId)
+        if (state != null) {
+            Log.e("VaxWidgetController", "got state")
             state.chartCurrentIdx =
                 (state.chartCurrentIdx + 1) % state.configuration.charts.size
 
         }
     }
+
 
     fun addWidget(appWidgetId: Int) {
         if (!widgets.containsKey(appWidgetId)) {
@@ -150,6 +158,9 @@ class VaxWidgetController(val context: Context) {
                 )
             if (configuration != null)
                 widgets.put(appWidgetId, WidgetState(configuration))
+            else {
+                Log.e("VaxWidgetController", "No configuration for widget $appWidgetId")
+            }
 
         }
     }
@@ -158,6 +169,9 @@ class VaxWidgetController(val context: Context) {
         if (!widgets.containsKey(appWidgetId)) {
             widgets.remove(appWidgetId)
         }
+        (context.applicationContext as VaxApplication).serviceLocator.configurationManager.deleteEntry(
+            appWidgetId
+        )
     }
 
 

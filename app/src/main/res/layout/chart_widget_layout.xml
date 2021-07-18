@@ -19,8 +19,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_weight="0"
-        android:text="TextView"
+        android:text="Chargement..."
         android:textAlignment="center"
+        android:textColor="@android:color/white"
         tools:text="@tools:sample/lorem" />
 
     <ImageView

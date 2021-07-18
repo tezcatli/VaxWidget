@@ -10,6 +10,20 @@ plugins {
 
 android {
 
+    signingConfigs {
+        debug {
+            storeFile file('C:\\Users\\jeanl\\OneDrive\\Documents\\Dev\\Android\\keystore.jks')
+            keyAlias 'key0'
+            storePassword 'C2MMy4hJrywjGe'
+            keyPassword 'C2MMy4hJrywjGe'
+        }
+        release {
+            storePassword 'C2MMy4hJrywjGe'
+            keyAlias 'key0'
+            storeFile file('C:\\Users\\jeanl\\OneDrive\\Documents\\Dev\\Android\\keystore.jks')
+            keyPassword 'C2MMy4hJrywjGe'
+        }
+    }
     compileSdkVersion 30
     buildToolsVersion "30.0.3"
     defaultConfig {
@@ -37,7 +51,9 @@ android {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-       //     signingConfig debug.signingConfig
+            debuggable false
+            signingConfig signingConfigs.release
+            //     signingConfig debug.signingConfig
         }
     }
 }

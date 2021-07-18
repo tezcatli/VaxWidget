@@ -15,6 +15,7 @@
         android:theme="@style/AppTheme">
 
 
+
         <receiver android:name=".VaccineWidget"
 
             android:enabled="true"

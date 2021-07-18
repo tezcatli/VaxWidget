@@ -25,3 +25,12 @@
     public static int d(...);
     public static int e(...);
 }
+
+-keep public class kotlin.reflect.jvm.internal.impl.** { public *; }
+-keep class com.beust.klaxon.** { *; }
+-keep interface com.beust.klaxon.** { *; }
+-keep class kotlin.Metadata { *; }
+
+#data models
+-keep class com.tezcatli.vaxwidget.ConfigurationManager$Configuration { *;}
+-keep class com.tezcatli.vaxwidget.ConfigurationManager$ConfigurationEntry { *;}

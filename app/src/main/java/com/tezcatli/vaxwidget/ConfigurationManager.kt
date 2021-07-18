@@ -1,6 +1,8 @@
 package com.tezcatli.vaxwidget
 
+import android.appwidget.AppWidgetManager
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.util.Log
 import com.beust.klaxon.Klaxon
@@ -19,7 +21,7 @@ class ConfigurationManager(val context : Context) {
     }
 
     data class Configuration (
-        var entries : MutableMap<Int,ConfigurationEntry> = mutableMapOf<Int, ConfigurationEntry>()
+        var entries : MutableMap<String,ConfigurationEntry> = mutableMapOf<String, ConfigurationEntry>()
         )
 
 
@@ -33,22 +35,35 @@ class ConfigurationManager(val context : Context) {
         val confJson : String = sharedPref.getString(context.getString(R.string.configuration_json_key), "{}") ?: ""
         Log.e("JSON", "Loading: " + confJson)
         configuration = Klaxon().parse<Configuration>(confJson) ?: Configuration()
+
     }
 
     init {
         loadConf()
+
+        /*
+        context.sendBroadcast(Intent(context, VaccineWidget::class.java).apply {
+            action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, configuration.entries.keys.toIntArray())})
+            */
+
     }
 
     fun setEntry(appWidgetId: Int, entry : ConfigurationEntry) {
-        configuration.entries[appWidgetId] = entry
+        configuration.entries[appWidgetId.toString()] = entry
+        saveConf()
     }
 
     fun getEntry(appWidgetId: Int) : ConfigurationEntry? {
-        return configuration.entries.get(appWidgetId)
+        val entry = configuration.entries.get(appWidgetId.toString())
+
+
+        return entry
     }
 
     fun deleteEntry(appWidgetId: Int) {
-        configuration.entries.remove(appWidgetId)
+        configuration.entries.remove(appWidgetId.toString())
+        saveConf()
     }
 
     fun saveConf() {
