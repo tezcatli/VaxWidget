@@ -9,4 +9,28 @@
     <color name="brown">#715639</color>
     <color name="orange">#FF9800</color>
 
+
+    <color name="AgeShade1">#FF0000</color>
+    <color name="AgeShade2">#FF9000</color>
+    <color name="AgeShade3">#FFB000</color>
+    <color name="AgeShade4">#FFE000</color>
+    <color name="AgeShade5">#FFFF00</color>
+    <color name="AgeShade6">#D0F000</color>
+    <color name="AgeShade7">#B0FF00</color>
+    <color name="AgeShade8">#00FF00</color>
+    <color name="AgeShade9">#00FFFF</color>
+    <color name="AgeShade10">#00B0FF</color>
+    <color name="AgeShade11">#0070FF</color>
+    <color name="AgeShade12">#0000FF</color>
+    <color name="AgeShade13">#A000FF</color>
+    <color name="AgeShade14">#A000FF</color>
+    <color name="AgeShade15">#E000FF</color>
+
+
+
+
+
+
+
+
 </resources>

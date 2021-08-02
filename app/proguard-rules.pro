@@ -32,5 +32,6 @@
 -keep class kotlin.Metadata { *; }
 
 #data models
+-keep class com.tezcatli.vaxwidget.** { *; }
 -keep class com.tezcatli.vaxwidget.ConfigurationManager$Configuration { *;}
 -keep class com.tezcatli.vaxwidget.ConfigurationManager$ConfigurationEntry { *;}

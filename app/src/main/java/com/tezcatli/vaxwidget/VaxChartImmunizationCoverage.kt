@@ -220,21 +220,21 @@ class VaxChartImmunizationCoverage constructor(var context: Context) : VaxChart(
             val lineData = LineData()
 
             val colors = arrayOf<Int>(
-                R.color.black,
-                R.color.red,
-                R.color.brown,
-                R.color.green,
-                R.color.orange,
-                R.color.black,
-                R.color.red,
-                R.color.brown,
-                R.color.green,
-                R.color.orange,
-                R.color.black,
-                R.color.red,
-                R.color.brown,
-                R.color.green,
-                R.color.orange
+                R.color.AgeShade1,
+                R.color.AgeShade2,
+                R.color.AgeShade3,
+                R.color.AgeShade4,
+                R.color.AgeShade5,
+                R.color.AgeShade6,
+                R.color.AgeShade7,
+                R.color.AgeShade8,
+                R.color.AgeShade9,
+                R.color.AgeShade10,
+                R.color.AgeShade11,
+                R.color.AgeShade12,
+                R.color.AgeShade13,
+                R.color.AgeShade14,
+                R.color.AgeShade15
             )
 
             for (vaccineIdx: Int in 1 until Data.dataClass.size) {

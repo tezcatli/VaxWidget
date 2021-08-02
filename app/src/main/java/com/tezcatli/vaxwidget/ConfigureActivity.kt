@@ -47,6 +47,8 @@ class ConfigureActivity : Activity() {
             }
             checkBoxes.add(checkBox)
             layout.addView(checkBox)
+
+            Log.e("Config", "Adding ${checkBox.tag}")
         }
 
         val periodTextView: EditText = findViewById(R.id.editTextNumber)
